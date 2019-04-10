@@ -1,85 +1,9 @@
 import csv
-import datetime
-""" download pdf
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtWebKit import *
-"""
-
+from datetime import timedelta, datetime
+from dateutil import parser
 from scrapy.spider import BaseSpider
-# from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor as sle
-from scrapy.selector import Selector
 from crawler.items import ArticleItem
-
 from scrapy.http.request import Request
-
-
-class AllArticleSpider(BaseSpider):
-    name = 'all'
-    collection_name = 'all'
-    allowed_domains = ['news.naver.com']
-    start_urls = []
-
-    try:
-        with open("allarticle.csv") as c_file:
-            reader = csv.DictReader(c_file)
-            for row in reader:
-                start_urls += [row['url']]
-    except IOError as err:
-        print("File error:" + str(err))
-   
-   # nurl, press, title, date
-    def parse(self, response):
-        sel = Selector(response)
-        nurl1s = sel.xpath('//ul[@class="type06_headline"]')
-        nurl2s = sel.xpath('//ul[@class="type06"]')
-        for nurl1 in nurl1s:
-            url1 = nurl1.xpath('li/dl/dt[@class="photo"]/a/@href').extract()
-            for u1 in url1:
-                yield Request(u1, callback=self.getUrl)
-        for nurl2 in nurl2s:
-            url2 = nurl2.xpath('li/dl/dt[@class="photo"]/a/@href').extract()
-            for u2 in url2:
-                yield Request(u2, callback=self.getUrl)
-
-    def getUrl(self, response):
-        # Save item
-        item = ArticleItem()
-        item['nurl'] = response.url
-        item['aid'] = item['nurl'][-10:]
-        item['press'] = response.xpath(
-            '//div[@class="press_logo"]/a/img/@title').extract()
-        item['title'] = response.xpath(
-            '//h3[@id="articleTitle"]/text()').extract()
-        item['article_body'] = ''.join(response.xpath(
-            '//div[@id="articleBodyContents"]/text()').extract()).strip()
-        item['date'] = response.xpath(
-            '//span[@class="t11"]/text()').extract()
-        item['purl'] = response.xpath(
-            '//div[@class="article_btns"]/a/@href').extract()
-        item['nclass'] = response.xpath(
-            '//div[@id="snb"]/h2/a/text()').extract()
-        item['nclass2'] = response.xpath(
-            '//ul[@class="nav"]/li[@class="on"]/a/text()').extract()
-        # item['body'] = response.xpath('//html').extract()
-        # item['html'] = 'html/'
-        # Save PDF
-        """app = QApplication(sys.argv)
-        web = QWebView()
-        web.load(QUrl(item['nurl']))
-        printer = QPrinter()
-        printer.setPageSize(QPrinter.A4)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName("pdf/"+item['aid']+".pdf")
-
-        def convertIt():
-            web.print_(printer)
-            QApplication.exit()
-
-        QObject.connect(web, SIGNAL("loadFinished(bool)"), convertIt)
-        app.exec_()
-        """
-        return item
 
 
 class MajorArticle(BaseSpider):
@@ -87,18 +11,30 @@ class MajorArticle(BaseSpider):
     collection_name = 'major'
     allowed_domains = ['news.naver.com']
     start_urls = []
-    dt = datetime.datetime.now()
-    # date_param = dt.strftime("&date=%Y%m%d")
-    date_param = '&date=20190111'
+    dt = datetime.now()
     main_url = 'https://news.naver.com/main/list.nhn'
-    try:
-        with open("majorarticle.csv") as c_file:
-            reader = csv.DictReader(c_file)
-            for row in reader:
-                start_urls += [row['url']+date_param]
-    except IOError as err:
-        print("File error:" + str(err))
-    
+
+    def __init__(self, from_date=dt, to_date=dt):
+        try:
+            self.from_date = parser.parse(from_date)
+            self.to_date = parser.parse(to_date)
+        except Exception as e:
+            print(e+' Input date value error (20180503, Aug 28 2008 12:00AM)')
+
+        def daterange():
+            for n in range(int((self.from_date - self.to_date).days)+1):
+                yield self.from_date + timedelta(n)
+
+        def make_start_urls():
+            try:
+                with open("majorarticle.csv") as c_file:
+                    reader = csv.DictReader(c_file)
+                    for row in reader:
+                        for d in daterange():
+                            self.start_urls += [row['url']+'&date='+d]
+            except IOError as err:
+                print("File error:" + str(err))
+
     # nurl, press, title, date
     def parse(self, response):
         try:
@@ -111,7 +47,7 @@ class MajorArticle(BaseSpider):
                     callback=self.parse_article_page)
         except Exception as e:
             print(e)
-    
+
     def parse_article_page(self, response):
         try:
             article_urls = response.xpath(
@@ -141,6 +77,4 @@ class MajorArticle(BaseSpider):
             '//div[@id="snb"]/h2/a/text()').extract()
         item['nclass2'] = response.xpath(
             '//ul[@class="nav"]/li[@class="on"]/a/text()').extract()
-        # item['body'] = response.xpath('//html').extract()
-        # item['html'] = 'html/'
         return item

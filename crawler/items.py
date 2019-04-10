@@ -10,7 +10,6 @@ class ArticleItem(Item):
     title = Field()
     article_body = Field()
     date = Field()
-    #reporter = Field()
     press = Field()
     purl = Field()
     nurl = Field()

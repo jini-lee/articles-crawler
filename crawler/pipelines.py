@@ -11,7 +11,6 @@ from scrapy.exceptions import DropItem
 
 class MongoPipeline(object):
     # collection_name = 'article_items'
-
     def __init__(self, mongo_uri, mongo_db):
         self.mongo_uri = mongo_uri
         self.mongo_db = mongo_db
@@ -34,6 +33,7 @@ class MongoPipeline(object):
         self.client.close()
 
     def process_item(self, item, spider):
+        # Duplicated news paper does not scrapped
         if item['aid'] in self.aids_seen:
             raise DropItem("Duplicate item found: %s" % item)
         else:
