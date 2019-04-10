@@ -6,9 +6,9 @@
 > [install mongodb](https://docs.mongodb.com/manual/installation/)  
 > [install scrapy](http://doc.scrapy.org/en/latest/intro/install.html)  
 ## Menual
-> * mongodb
->     MONGO_DATABASE = 'articles' 
->     collection = major
+> * mongodb  
+>     MONGO_DATABASE = 'articles'   
+>     collection = 'major'
 > * today news paper scrap  
 >     scrapy crawl article  
 > * specific date news paper scrap  
