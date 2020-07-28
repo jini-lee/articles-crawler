@@ -1,4 +1,4 @@
-# Naver 뉴스기사 크롤러
+# articles-crawler
 
 ## Menual
 > * mongodb  
